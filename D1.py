@@ -85,4 +85,37 @@ def equivalentes(expr1, expr2):
 # Salida: lista de listas.
 
 def inferencia(expr):
-    pass
+    partes = expr.split('=')
+    if len(partes) != 2: # Validar el formato
+        return []
+    proposicion = partes[0].strip() # Extraer proposición
+    valor = partes[1].strip() # Extraer valor
+    if valor == '1': #Expresión es igual a verdadera
+        igual = True
+    elif valor == '0': #Expresión es igual a falsa
+        igual = False
+    else:
+        return []
+
+    # Extraer variables y ordenarlas
+    variables = extract_variables(proposicion)
+    n = len(variables) #Número de variables
+    resultados = [] #Lista para almacenar resultados
+
+    # Generar todas las combinaciones posibles de valores de verdad
+    for i in range(2 ** n):
+        fila = [] #Fila para almacenar valores de verdad
+        valores = {} #Diccionario para almacenar valores de verdad
+        for j in range(n): #Recorrer las variables
+            valor_bool = bool((i >> (n - j - 1)) & 1) #Obtener el valor de verdad
+            fila.append(valor_bool) #Agregar valor a la fila
+            valores[variables[j]] = valor_bool #Agregar valor al diccionario
+        try: #Evaluar la proposición con los valores de verdad
+            resultado = eval(proposicion, {}, {**valores, "implies": implies, "iff": iff}) #Evaluar la proposición
+        except Exception: # Si hay un error en la evaluación, continuar con la siguiente iteración
+            continue
+        if resultado == igual: #Verificar si el resultado es igual al valor esperado
+            resultados.append(fila) #Agregar fila a los resultados
+    return resultados #Retornar resultados
+
+#print(inferencia('a and not a = 1'))
