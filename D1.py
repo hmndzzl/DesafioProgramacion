@@ -76,11 +76,11 @@ def tautologia(expr):
     for i in range(2 ** n):  
         valores = {} # Declaracion del diccionario para evaluar con eval
         for j in range(n): # Itera en las variables (n es cantidad de variables)
-            valores[variables[j]] = bool((i >> (n - j - 1)) & 1) # obtener el valor booleano de cada variable en cada fila 
+            valores[variables[j]] = bool((i >> (n - j - 1)) & 1) # obtener el valor booleano de cada variable en la fila (i)
 
         
         try:
-            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua cada fila con los valores booleanos
+            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
         except Exception:
             return False  
 
