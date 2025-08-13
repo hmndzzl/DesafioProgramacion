@@ -57,18 +57,6 @@ def extract_variables(expression):
 ############## No modificar las definiciones de las funciones ##############
 
 
-def expr_transformada(expr):
-    pattern_implies = re.compile(r'(\([^\)]+\)|[a-z])\s*\|implies\|\s*(\([^\)]+\)|[a-z])')
-    while pattern_implies.search(expr):
-        expr = pattern_implies.sub(r'implies(\1, \2)', expr)
-
-    pattern_iff = re.compile(r'(\([^\)]+\)|[a-z])\s*\|iff\|\s*(\([^\)]+\)|[a-z])')
-    while pattern_iff.search(expr):
-        expr = pattern_iff.sub(r'iff(\1, \2)', expr)
-
-    return expr
-
-
 # Función: tabla_verdad
 # Esta función calcula una tabla de verdad para una expresión dada.
 # Entrada: expresión.
@@ -80,8 +68,6 @@ def tabla_verdad(expr):
     combinaciones = 2 ** n_var # se calcula el numero de filas posibles (2^n)
     tabla_de_verdad = [] # se crea una lista para guardar las filas de la tabla
     
-    expr_eval = expr_transformada(expr)  # Transformamos la expresión una sola vez antes del ciclo
-
     # se itera por cada una de las filas o combinaciones creadas
     for i in range(combinaciones):
         filas = [] # se crea una lista para guardar los valores de verdad
@@ -97,7 +83,7 @@ def tabla_verdad(expr):
 
         # se evalua la expresion con eval con la expresion un diccionario de "globales" y el diccionario local
         try:
-            resultado = eval(expr_eval, {"__builtins__": None}, asignaciones)
+            resultado = eval(expr, {"__builtins__": None}, asignaciones)
 
         # se maneja cualquier error que pueda ocurrir durante la evaluación
         except Exception:
@@ -116,7 +102,6 @@ def tabla_verdad(expr):
 # Salida: booleano.
 def tautologia(expr):
     variables = extract_variables(expr) # Variables atómicas
-    expr_eval = expr_transformada(expr)
     
     n = len(variables)
 
@@ -127,11 +112,11 @@ def tautologia(expr):
 
         
         try:
-            resultado = eval(expr_eval, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
+            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
         except Exception:
             return False  
 
-        if resultado is not True: # Si alguno no es true, ya se sabe que es tautología
+        if resultado is not True: # Si alguno no es true, ya se sabe que no es tautología
             return False  
 
     return True
@@ -151,9 +136,7 @@ def equivalentes(expr1, expr2):
     
     expr3 = "(" + expr1 + ")" + " |iff| " + "(" + expr2 + ")"
     
-    print(expr3)
-    expr3_eval = expr_transformada(expr3)
-    return tautologia(expr3_eval)
+    return tautologia(expr3)
 
     
 
@@ -189,8 +172,7 @@ def inferencia(expr):
             fila.append(valor_bool) #Agregar valor a la fila
             valores[variables[j]] = valor_bool #Agregar valor al diccionario
         try: #Evaluar la proposición con los valores de verdad
-            propos_eval = expr_transformada(proposicion)
-            resultado = eval(propos_eval, {}, {**valores, "implies": implies, "iff": iff})
+            resultado = eval(proposicion, {}, {**valores, "implies": implies, "iff": iff})
         except Exception: # Si hay un error en la evaluación, continuar con la siguiente iteración
             continue
         if resultado == igual: #Verificar si el resultado es igual al valor esperado
@@ -201,98 +183,90 @@ def inferencia(expr):
 # Función propia para validar la sintaxis de una expresión
 def sintaxis_valida(expr):
     try:
-        expr_eval = expr_transformada(expr)
         # Extrae variables y les asigna valores arbitrarios para probar la sintaxis
         variables = extract_variables(expr)
         entorno = {var: True for var in variables}
         entorno.update({"implies": implies, "iff": iff})
-        eval(expr_eval, {"__builtins__": None}, entorno)
+        eval(expr, {"__builtins__": None}, entorno)
         return True
     except Exception:
         return False
 
 
-
-#print(inferencia('a and not a = 1'))
-#print(inferencia('(a and b) |implies| (c or not a) = 0'))
-#print(equivalentes("not (a and b)", "not a and not b"))
-#print(equivalentes("p |implies| q", "not p or q"))
-
-#Menu
+# Menu
 opcion = ""
 while opcion != "5":
-        print("\n===== MENÚ DE LÓGICA PROPOSICIONAL =====")
-        print("1. Mostrar tabla de verdad")
-        print("2. Verificar si una expresión es tautología")
-        print("3. Verificar si dos expresiones son equivalentes")
-        print("4. Realizar inferencia")
-        print("5. Salir")
+    print("\n===== MENÚ DE LÓGICA PROPOSICIONAL =====")
+    print("1. Mostrar tabla de verdad")
+    print("2. Verificar si una expresión es tautología")
+    print("3. Verificar si dos expresiones son equivalentes")
+    print("4. Realizar inferencia")
+    print("5. Salir")
+    opcion = input("Seleccione una opción (1-5): ").strip()
+
+    if opcion == "1":
+        expr = input("Ingrese expresión lógica para tabla de verdad: ").strip()
+        if not expr:
+            print("Error: no se ingresó ninguna expresión.")
+            continue
+        if not sintaxis_valida(expr):
+            print("Error: sintaxis inválida. Intente de nuevo.")
+            continue
+        try:
+            pprint(tabla_verdad(expr))
+        except Exception as e:
+            print(f"Error al calcular la tabla de verdad: {e}")
+
+    elif opcion == "2":
+        expr = input("Ingrese expresión lógica para verificar tautología: ").strip()
+        if not expr:
+            print("Error: no se ingresó ninguna expresión.")
+            continue
+        if not sintaxis_valida(expr):
+            print("Error: sintaxis inválida. Intente de nuevo.")
+            continue
+        try:
+            print(tautologia(expr))
+        except Exception as e:
+            print(f"Error al verificar tautología: {e}")
+
+    elif opcion == "3":
+        expr1 = input("Ingrese primera expresión: ").strip()
+        expr2 = input("Ingrese segunda expresión: ").strip()
+        if not expr1 or not expr2:
+            print("Error: debe ingresar ambas expresiones.")
+            continue
+        if not sintaxis_valida(expr1) or not sintaxis_valida(expr2):
+            print("Error: una o ambas expresiones tienen sintaxis inválida. Intente de nuevo.")
+            continue
+        try:
+            print(equivalentes(expr1, expr2))
+        except Exception as e:
+            print(f"Error al verificar equivalencia: {e}")
+
+    elif opcion == "4":
+        entrada = input("Ingrese proposición: ").strip()
+        if not entrada:
+            print("Error: no se ingresó ninguna proposición.")
+            continue
         
-        opcion = input("Seleccione una opción (1-5): ").strip()
-
-        if opcion == "1":
-            expr = input("Ingrese expresión lógica para tabla de verdad: ").strip()
-            if not expr:
-                print("Error: no se ingresó ninguna expresión.")
-                continue
-            if not sintaxis_valida(expr):
-                print("Error: sintaxis inválida. Intente de nuevo.")
-                continue
-            try:
-                pprint(tabla_verdad(expr))
-            except Exception as e:
-                print(f"Error al calcular la tabla de verdad: {e}")
-
-        elif opcion == "2":
-            expr = input("Ingrese expresión lógica para verificar tautología: ").strip()
-            if not expr:
-                print("Error: no se ingresó ninguna expresión.")
-                continue
-            if not sintaxis_valida(expr):
-                print("Error: sintaxis inválida. Intente de nuevo.")
-                continue
-            try:
-                print(tautologia(expr))
-            except Exception as e:
-                print(f"Error al verificar tautología: {e}")
-
-        elif opcion == "3":
-            expr1 = input("Ingrese primera expresión: ").strip()
-            expr2 = input("Ingrese segunda expresión: ").strip()
-            if not expr1 or not expr2:
-                print("Error: debe ingresar ambas expresiones.")
-                continue
-            if not sintaxis_valida(expr1) or not sintaxis_valida(expr2):
-                print("Error: una o ambas expresiones tienen sintaxis inválida. Intente de nuevo.")
-                continue
-            try:
-                print(equivalentes(expr1, expr2))
-            except Exception as e:
-                print(f"Error al verificar equivalencia: {e}")
-
-        elif opcion == "4":
-            entrada = input("Ingrese proposición: ").strip()
-            if not entrada:
-                print("Error: no se ingresó ninguna proposición.")
-                continue
-            
-            partes = entrada.split("=")
-            if len(partes) != 2 or partes[0].strip() == "" or partes[1].strip() not in ("0", "1"):
-                print("Error: formato inválido. Use «proposición = 0» o «proposición = 1».")
-                continue
-            
-            propos = partes[0].strip()
-            if not sintaxis_valida(propos):
-                print("Error: sintaxis inválida en la proposición. Intente de nuevo.")
-                continue
-            
-            try:
-                print(inferencia(entrada))
-            except Exception as e:
-                print(f"Error al realizar inferencia: {e}")
+        partes = entrada.split("=")
+        if len(partes) != 2 or partes[0].strip() == "" or partes[1].strip() not in ("0", "1"):
+            print("Error: formato inválido. Use «proposición = 0» o «proposición = 1».")
+            continue
         
-        elif opcion == "5":
-            print("Saliendo del programa...")
+        propos = partes[0].strip()
+        if not sintaxis_valida(propos):
+            print("Error: sintaxis inválida en la proposición. Intente de nuevo.")
+            continue
+        
+        try:
+            print(inferencia(entrada))
+        except Exception as e:
+            print(f"Error al realizar inferencia: {e}")
 
-        else:
-            print("Opción inválida. Por favor seleccione una opción del 1 al 5.")
+    elif opcion == "5":
+        print("Saliendo del programa...")
+
+    else:
+        print("Opción inválida. Por favor seleccione una opción del 1 al 5.")
