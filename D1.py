@@ -61,7 +61,29 @@ def extract_variables(expression):
 # Salida: tabla de verdad como una lista de listas.
 
 def tabla_verdad(expr):
-    pass
+    var = extract_variables(expr)
+    n_var = len(var)
+    combinaciones = 2 ** n_var
+    tabla_de_verdad = []
+
+    for i in range(combinaciones):
+        filas = []
+        for val in range(n_var):
+            valor = (i >> (n_var - 1 - val)) & 1
+            filas.append(valor == 1)
+
+        asignaciones = dict(zip(var, filas))
+        asignaciones.update({"implies": implies, "iff": iff})
+
+        try:
+            resultado = eval(expr, {"__builtins__": None}, asignaciones)
+            
+        except Exception:
+            resultado = False
+
+        tabla_de_verdad.append(filas + [resultado])
+
+    return tabla_de_verdad
 
 # Función: tautologia
 # Esta función determina si la expresión es una tautología, devuelve True;
