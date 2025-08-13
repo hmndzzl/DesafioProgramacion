@@ -69,7 +69,27 @@ def tabla_verdad(expr):
 # Entrada: expresión.
 # Salida: booleano.
 def tautologia(expr):
-    pass
+    variables = extract_variables(expr) # Variables atómicas
+    
+    n = len(variables)
+
+    for i in range(2 ** n):  
+        valores = {} # Declaracion del diccionario para evaluar con eval
+        for j in range(n): # Itera en las variables (n es cantidad de variables)
+            valores[variables[j]] = bool((i >> (n - j - 1)) & 1) # obtener el valor booleano de cada variable en cada fila 
+
+        
+        try:
+            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua cada fila con los valores booleanos
+        except Exception:
+            return False  
+
+        if resultado is not True: # Si alguno no es true, ya se sabe que es tautología
+            return False  
+
+    return True
+
+#funcion valid sintaxis para el main... tal vez 
 
 # Función: equivalentes
 # Esta función determina si expr1 es equivalente a expr2, devuelve True;
@@ -77,7 +97,18 @@ def tautologia(expr):
 # Entrada: expresión 1 y expresión 2.
 # Salida: booleano.
 def equivalentes(expr1, expr2):
-    pass
+    # 2 Expresiones son equivalentes si su doble inferencia es tautología
+    variables1 = extract_variables(expr1)
+    variables2 = extract_variables(expr2)
+    
+    if variables1 != variables2:
+        return False
+    
+    expr3 = "(" + expr1 + ")" + " |iff| " + "(" + expr2 + ")"
+    
+    print(expr3)
+    
+    return tautologia(expr3)
 
 # Función: inferencia
 # Esta función determina los valores de verdad para una valuación de una proposición dada.
@@ -118,4 +149,8 @@ def inferencia(expr):
             resultados.append(fila) #Agregar fila a los resultados
     return resultados #Retornar resultados
 
-#print(inferencia('a and not a = 1'))
+print(inferencia('a and not a = 1'))
+print(inferencia('(a and b) |implies| (c or not a) = 0'))
+# Diego Equivalencia 
+print(equivalentes("not (a and b)", "not a and not b"))
+print(equivalentes("p |implies| q", "not p or q"))
