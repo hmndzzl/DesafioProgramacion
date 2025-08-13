@@ -61,28 +61,36 @@ def extract_variables(expression):
 # Salida: tabla de verdad como una lista de listas.
 
 def tabla_verdad(expr):
-    var = extract_variables(expr)
-    n_var = len(var)
-    combinaciones = 2 ** n_var
-    tabla_de_verdad = []
+    var = extract_variables(expr) # se llama a la funcion auxiliar para extraer las variables
+    n_var = len(var) # se guarda el numero de variables
+    combinaciones = 2 ** n_var # se calcula el numero de filas posibles (2^n)
+    tabla_de_verdad = [] # se crea una lista para guardar las filas de la tabla
 
+    # se itera por cada una de las filas o combinaciones creadas
     for i in range(combinaciones):
-        filas = []
+        filas = [] # se crea una lista para guardar los valores de verdad
+
+        # se itera por cada una de las variables
         for val in range(n_var):
-            valor = (i >> (n_var - 1 - val)) & 1
+            valor = (i >> (n_var - 1 - val)) & 1 #se obtiene el valor de la variable en la combinacion actual mediante un AND
             filas.append(valor == 1)
 
+        # se crea un diccionario con las variables y sus valores de verdad
         asignaciones = dict(zip(var, filas))
-        asignaciones.update({"implies": implies, "iff": iff})
+        asignaciones.update({"implies": implies, "iff": iff}) # se actualiza el diccionario con las funciones de implicación y equivalencia
 
+        # se evalua la expresion con eval con la expresion un diccionario de "globales" y el diccionario local
         try:
             resultado = eval(expr, {"__builtins__": None}, asignaciones)
-            
+
+        # se maneja cualquier error que pueda ocurrir durante la evaluación
         except Exception:
             resultado = False
 
+        # se agrega la fila con los valores de verdad y el resultado de la evaluacion a la tabla de verdad
         tabla_de_verdad.append(filas + [resultado])
 
+    # devuelve la lista de listas
     return tabla_de_verdad
 
 # Función: tautologia
