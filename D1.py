@@ -106,11 +106,11 @@ def tautologia(expr):
     for i in range(2 ** n):  
         valores = {} # Declaracion del diccionario para evaluar con eval
         for j in range(n): # Itera en las variables (n es cantidad de variables)
-            valores[variables[j]] = bool((i >> (n - j - 1)) & 1) # obtener el valor booleano de cada variable en cada fila 
+            valores[variables[j]] = bool((i >> (n - j - 1)) & 1) # obtener el valor booleano de cada variable en la fila (i)
 
         
         try:
-            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua cada fila con los valores booleanos
+            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
         except Exception:
             return False  
 
@@ -118,8 +118,6 @@ def tautologia(expr):
             return False  
 
     return True
-
-#funcion valid sintaxis para el main... tal vez 
 
 # Función: equivalentes
 # Esta función determina si expr1 es equivalente a expr2, devuelve True;
@@ -179,8 +177,17 @@ def inferencia(expr):
             resultados.append(fila) #Agregar fila a los resultados
     return resultados #Retornar resultados
 
-print(inferencia('a and not a = 1'))
-print(inferencia('(a and b) |implies| (c or not a) = 0'))
-# Diego Equivalencia 
-print(equivalentes("not (a and b)", "not a and not b"))
-print(equivalentes("p |implies| q", "not p or q"))
+
+# Función propia para validar la sintaxis de una expresión
+def sintaxis_valida(expr):
+    try: # Intenta evaluar la expresión en el entorno definido.
+        eval(expr, {}, {"implies": implies, "iff": iff})
+        return True
+    except (SyntaxError, NameError, TypeError, AttributeError): # significa que la sintaxis no es válida.
+        return False
+
+
+#print(inferencia('a and not a = 1'))
+#print(inferencia('(a and b) |implies| (c or not a) = 0'))
+#print(equivalentes("not (a and b)", "not a and not b"))
+#print(equivalentes("p |implies| q", "not p or q"))
