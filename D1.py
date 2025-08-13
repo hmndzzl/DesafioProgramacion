@@ -55,6 +55,19 @@ def extract_variables(expression):
 ############## IMPLEMENTAR LAS SIGUIENTES FUNCIONES  ##############
 ############## No modificar las definiciones de las funciones ##############
 
+
+def expr_transformada(expr):
+    pattern_implies = re.compile(r'(\([^\)]+\)|[a-z])\s*\|implies\|\s*(\([^\)]+\)|[a-z])')
+    while pattern_implies.search(expr):
+        expr = pattern_implies.sub(r'implies(\1, \2)', expr)
+
+    pattern_iff = re.compile(r'(\([^\)]+\)|[a-z])\s*\|iff\|\s*(\([^\)]+\)|[a-z])')
+    while pattern_iff.search(expr):
+        expr = pattern_iff.sub(r'iff(\1, \2)', expr)
+
+    return expr
+
+
 # Función: tabla_verdad
 # Esta función calcula una tabla de verdad para una expresión dada.
 # Entrada: expresión.
@@ -65,6 +78,8 @@ def tabla_verdad(expr):
     n_var = len(var) # se guarda el numero de variables
     combinaciones = 2 ** n_var # se calcula el numero de filas posibles (2^n)
     tabla_de_verdad = [] # se crea una lista para guardar las filas de la tabla
+    
+    expr_eval = expr_transformada(expr)  # Transformamos la expresión una sola vez antes del ciclo
 
     # se itera por cada una de las filas o combinaciones creadas
     for i in range(combinaciones):
@@ -81,7 +96,7 @@ def tabla_verdad(expr):
 
         # se evalua la expresion con eval con la expresion un diccionario de "globales" y el diccionario local
         try:
-            resultado = eval(expr, {"__builtins__": None}, asignaciones)
+            resultado = eval(expr_eval, {"__builtins__": None}, asignaciones)
 
         # se maneja cualquier error que pueda ocurrir durante la evaluación
         except Exception:
@@ -100,6 +115,7 @@ def tabla_verdad(expr):
 # Salida: booleano.
 def tautologia(expr):
     variables = extract_variables(expr) # Variables atómicas
+    expr_eval = expr_transformada(expr)
     
     n = len(variables)
 
@@ -110,7 +126,7 @@ def tautologia(expr):
 
         
         try:
-            resultado = eval(expr, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
+            resultado = eval(expr_eval, {}, {**valores, "implies": implies, "iff": iff}) # Evalua la fila con los valores booleanos
         except Exception:
             return False  
 
@@ -135,8 +151,10 @@ def equivalentes(expr1, expr2):
     expr3 = "(" + expr1 + ")" + " |iff| " + "(" + expr2 + ")"
     
     print(expr3)
+    expr3_eval = expr_transformada(expr3)
+    return tautologia(expr3_eval)
+
     
-    return tautologia(expr3)
 
 # Función: inferencia
 # Esta función determina los valores de verdad para una valuación de una proposición dada.
@@ -170,7 +188,8 @@ def inferencia(expr):
             fila.append(valor_bool) #Agregar valor a la fila
             valores[variables[j]] = valor_bool #Agregar valor al diccionario
         try: #Evaluar la proposición con los valores de verdad
-            resultado = eval(proposicion, {}, {**valores, "implies": implies, "iff": iff}) #Evaluar la proposición
+            propos_eval = expr_transformada(proposicion)
+            resultado = eval(propos_eval, {}, {**valores, "implies": implies, "iff": iff})
         except Exception: # Si hay un error en la evaluación, continuar con la siguiente iteración
             continue
         if resultado == igual: #Verificar si el resultado es igual al valor esperado
@@ -180,14 +199,94 @@ def inferencia(expr):
 
 # Función propia para validar la sintaxis de una expresión
 def sintaxis_valida(expr):
-    try: # Intenta evaluar la expresión en el entorno definido.
-        eval(expr, {}, {"implies": implies, "iff": iff})
+    try:
+        expr_eval = expr_transformada(expr)
+        entorno = {
+            "implies": implies,
+            "iff": iff,
+            "and": lambda a, b: a and b,
+            "or": lambda a, b: a or b,
+            "not": lambda a: not a,
+        }
+        eval(expr_eval, {}, entorno)
         return True
-    except (SyntaxError, NameError, TypeError, AttributeError): # significa que la sintaxis no es válida.
+    except (SyntaxError, NameError, TypeError, AttributeError):
         return False
+
 
 
 #print(inferencia('a and not a = 1'))
 #print(inferencia('(a and b) |implies| (c or not a) = 0'))
 #print(equivalentes("not (a and b)", "not a and not b"))
 #print(equivalentes("p |implies| q", "not p or q"))
+
+#Menu
+opcion = ""
+while opcion != "5":
+    print("\n===== MENÚ DE LÓGICA PROPOSICIONAL =====")
+    print("1. Mostrar tabla de verdad")
+    print("2. Verificar si una expresión es tautología")
+    print("3. Verificar si dos expresiones son equivalentes")
+    print("4. Realizar inferencia (proposición = 0 o 1)")
+    print("5. Salir")
+    opcion = input("Seleccione una opción (1-5): ").strip()
+
+    if opcion == "1":
+        expr = input("Ingrese expresión lógica para tabla de verdad: ").strip()
+        if not sintaxis_valida(expr):
+            print("Error: sintaxis inválida. Intente de nuevo.")
+            continue
+        tabla = tabla_verdad(expr)
+        vars_ = extract_variables(expr)
+        encabezado = " | ".join(vars_) + " | " + expr
+        print("\n" + encabezado)
+        print("-" * len(encabezado))
+        for fila in tabla:
+            valores = ["1" if val else "0" for val in fila[:-1]]
+            res = "1" if fila[-1] else "0"
+            print(" | ".join(valores) + " | " + res)
+
+    elif opcion == "2":
+        expr = input("Ingrese expresión lógica para verificar tautología: ").strip()
+        if not sintaxis_valida(expr):
+            print("Error: sintaxis inválida. Intente de nuevo.")
+            continue
+        es_tauto = tautologia(expr)
+        print("La expresión **sí** es una tautología." if es_tauto else "La expresión **no** es una tautología.")
+
+    elif opcion == "3":
+        expr1 = input("Ingrese primera expresión: ").strip()
+        expr2 = input("Ingrese segunda expresión: ").strip()
+        if not sintaxis_valida(expr1) or not sintaxis_valida(expr2):
+            print("Error: una o ambas expresiones tienen sintaxis inválida. Intente de nuevo.")
+            continue
+        son_eq = equivalentes(expr1, expr2)
+        print("Las expresiones **sí** son equivalentes." if son_eq else "Las expresiones **no** son equivalentes.")
+
+    elif opcion == "4":
+        entrada = input("Ingrese proposición con valor esperado (ejemplo: «a and b = 1» o «p = 0»): ").strip()
+        partes = entrada.split("=")
+        if len(partes) != 2 or partes[0].strip() == "" or partes[1].strip() not in ("0", "1"):
+            print("Error: formato inválido. Use «proposición = 0» o «proposición = 1».")
+            continue
+        propos = partes[0].strip()
+        if not sintaxis_valida(propos):
+            print("Error: sintaxis inválida en la proposición. Intente de nuevo.")
+            continue
+        resultados = inferencia(entrada)
+        if not resultados:
+            print("No se encontraron valuaciones que cumplan con esa inferencia.")
+        else:
+            vars_inf = extract_variables(propos)
+            encabezado = " | ".join(vars_inf)
+            print("\nValuaciones que hacen que la proposición sea igual a " + partes[1].strip() + ":")
+            print(encabezado)
+            print("-" * len(encabezado))
+            for fila in resultados:
+                print(" | ".join("1" if val else "0" for val in fila))
+
+    elif opcion == "5":
+        print("Saliendo.")
+
+    else:
+        print("Opción inválida. Por favor seleccione una opción del 1 al 5.")
